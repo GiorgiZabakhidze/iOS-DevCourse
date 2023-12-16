@@ -14,7 +14,8 @@ struct ContentView: View {
     @State private var WordsInGame = 0
     @State private var flowerNumber = 8
     @State private var characterToGuess = ""
-    @State private var playAgainHidden = false
+    @State private var playAgainHidden = true
+    @FocusState private var textfieldFocused: Bool
     
     var body: some View {
         VStack {
@@ -51,12 +52,28 @@ struct ContentView: View {
                             RoundedRectangle(cornerRadius: 5)
                                 .stroke(.gray, lineWidth: 2)
                         }
+                        .keyboardType(.asciiCapable)
+                        .submitLabel(.done)
+                        .autocorrectionDisabled()
+                        .textInputAutocapitalization(.characters)
+                        .onChange(of: characterToGuess) {
+                            characterToGuess = characterToGuess.trimmingCharacters(in: .letters.inverted)
+                            
+                            guard let lastChar = characterToGuess.last else {
+                                return
+                            }
+                            
+                            characterToGuess = lastChar.uppercased()
+                        }
+                        .focused($textfieldFocused)
                     
                     Button("Guess a Word") {
+                        textfieldFocused = false
                         //MARK: Guess a word
                     }
                     .buttonStyle(.bordered)
                     .tint(.mint)
+                    .disabled(characterToGuess.isEmpty)
                     
                 }else {
                     Button("Another Word?") {
