@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import AVFAudio
 
 struct ContentView: View {
     @State private var wordsGuessed = 0
@@ -22,8 +23,10 @@ struct ContentView: View {
     
     @State private var playAgainHidden = true
     @FocusState private var textfieldFocused: Bool
+    @State private var audioPlayer: AVAudioPlayer!
     
     @State private var wordsToGuess = ["SWIFT", "DOG", "CAT"]
+    @State private var imageName = "flower8"
     
     @State private var wordsInGame = 0
     private let maximumGuesses = 8
@@ -104,13 +107,20 @@ struct ContentView: View {
                 }else if(wordsToGuess.count != 1) {
                     Button("Another Word?") {
                         playAgainHidden = true
+                        
                         lettersTried = ""
+                        
                         wordsToGuess.remove(at: wordsToGuess.firstIndex(of: wordToGuess)!)
+                        
                         wordToGuess = wordsToGuess.randomElement()!
                         
-                        guessALetter(wordToGuess)
-                        
+                        revealedWord = "_" + String(repeating: " _", count: wordToGuess.count - 1)
+
                         guessesRemaining = maximumGuesses
+                        
+                        imageName = "flower\(guessesRemaining)"
+                        
+                        gameStatusMessage = "How Many Guesses To Uncover The Hidden Word?"
                     }
                     .buttonStyle(.borderedProminent)
                     .tint(.mint)
@@ -129,9 +139,10 @@ struct ContentView: View {
             }
 
             
-            Image("flower\(guessesRemaining)")
+            Image(imageName)
                 .resizable()
                 .scaledToFit()
+                .animation(.easeIn(duration: 0.75), value: imageName)
                 
         }
         .padding(.horizontal)
@@ -144,6 +155,8 @@ struct ContentView: View {
             revealedWord = "_" + String(repeating: " _", count: wordToGuess.count - 1)
             
             guessesRemaining = maximumGuesses
+            
+            imageName = "flower\(guessesRemaining)"
         }
         
     }
@@ -193,6 +206,19 @@ struct ContentView: View {
             
             guessesRemaining -= 1
             
+            //Animates Crumbling leaf and plays "incorrect" sound.
+            imageName = "wilt\(guessesRemaining)"
+            
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.75) {
+                imageName = "flower\(guessesRemaining)"
+            }
+            
+            playSound(soundName: "incorrect")
+            
+        }else {
+            
+            playSound(soundName: "correct")
+            
         }
         
         if !revealedWord.contains("_") { // Word Guessed!
@@ -203,6 +229,8 @@ struct ContentView: View {
             
             wordsGuessed += 1
             
+            playSound(soundName: "word-guessed")
+            
         }else if guessesRemaining == 0 { // Word Missed!
             
             gameStatusMessage = "Whoopsie! You Are All Out Of Guesses."
@@ -211,6 +239,8 @@ struct ContentView: View {
             
             playAgainHidden = false
             
+            playSound(soundName: "word-not-guessed")
+            
         }else { // Keep Guessing..
             
             gameStatusMessage = "You Have Made \(lettersTried.count) Guess\(lettersTried.count == 1 ? "" : "es")"
@@ -218,6 +248,21 @@ struct ContentView: View {
         }
             
         characterToGuess = ""
+    }
+    
+    func playSound(soundName: String) {
+        guard let soundFile = NSDataAsset(name: soundName) else {
+            print("😡 Couldn't read a soundFile named \"\(soundName)\"")
+            return
+        }
+        
+        do {
+            audioPlayer = try AVAudioPlayer(data: soundFile.data)
+            audioPlayer.play()
+        } catch {
+            print("😡 ERROR: \(error.localizedDescription) creating audioPlayer.")
+        }
+        
     }
     
 }
