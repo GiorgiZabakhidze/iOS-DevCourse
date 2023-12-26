@@ -12,7 +12,8 @@ struct ContentView: View {
     @State private var wordsMissed = 0
     
     @State private var gameStatusMessage = "How Many Guesses To Uncover The Hidden Word?"
-    @State private var flowerNumber = 8
+    
+    @State private var guessesRemaining = 0
     
     @State private var characterToGuess = ""
     @State private var revealedWord = ""
@@ -23,6 +24,9 @@ struct ContentView: View {
     @FocusState private var textfieldFocused: Bool
     
     @State private var wordsToGuess = ["SWIFT", "DOG", "CAT"]
+    
+    @State private var wordsInGame = 0
+    private let maximumGuesses = 8
     
     var body: some View {
         VStack {
@@ -36,9 +40,9 @@ struct ContentView: View {
                 Spacer()
                 
                 VStack(alignment: .leading, content: {
-                    Text("Words to Guess: \(wordsGuessed)")
+                    Text("Words Left: \(wordsToGuess.count)")
                     
-                    Text("Words in Game: \(wordsGuessed)")
+                    Text("Words in Game: \(wordsInGame)")
                 })
                 
             }
@@ -48,6 +52,8 @@ struct ContentView: View {
             Text(gameStatusMessage)
                 .font(.title2)
                 .multilineTextAlignment(.center)
+                .frame(height: 80)
+                .minimumScaleFactor(0.5)
                 .padding()
             
             Spacer()
@@ -103,11 +109,13 @@ struct ContentView: View {
                         wordToGuess = wordsToGuess.randomElement()!
                         
                         guessALetter(wordToGuess)
+                        
+                        guessesRemaining = maximumGuesses
                     }
                     .buttonStyle(.borderedProminent)
                     .tint(.mint)
                 }else {
-                    Text("You Guessed All The Words There Was...")
+                    Text(gameStatusMessage)
                         .font(.largeTitle)
                         .fontDesign(.serif)
                         .multilineTextAlignment(.center)
@@ -121,7 +129,7 @@ struct ContentView: View {
             }
 
             
-            Image("flower\(flowerNumber)")
+            Image("flower\(guessesRemaining)")
                 .resizable()
                 .scaledToFit()
                 
@@ -129,9 +137,13 @@ struct ContentView: View {
         .padding(.horizontal)
         .ignoresSafeArea(edges: .bottom)
         .onAppear {
+            wordsInGame = wordsToGuess.count
+            
             wordToGuess = wordsToGuess.randomElement()!
             
             revealedWord = "_" + String(repeating: " _", count: wordToGuess.count - 1)
+            
+            guessesRemaining = maximumGuesses
         }
         
     }
@@ -167,13 +179,47 @@ struct ContentView: View {
         
         revealedWord.removeLast()
         
-        characterToGuess = ""
-        
         if(lettersGuessed == wordToGuess.count) {
             wordsGuessed += 1
             playAgainHidden = false
         }
+        
+        updateGamePlay()
     }
+    
+    func updateGamePlay() {
+        
+        if !wordToGuess.contains(characterToGuess) {
+            
+            guessesRemaining -= 1
+            
+        }
+        
+        if !revealedWord.contains("_") { // Word Guessed!
+            
+            gameStatusMessage = "You Guessed It. It Took You \(lettersTried.count) Guesses to Guess The Word."
+            
+            playAgainHidden = false
+            
+            wordsGuessed += 1
+            
+        }else if guessesRemaining == 0 { // Word Missed!
+            
+            gameStatusMessage = "Whoopsie! You Are All Out Of Guesses."
+            
+            wordsMissed += 1
+            
+            playAgainHidden = false
+            
+        }else { // Keep Guessing..
+            
+            gameStatusMessage = "You Have Made \(lettersTried.count) Guess\(lettersTried.count == 1 ? "" : "es")"
+            
+        }
+            
+        characterToGuess = ""
+    }
+    
 }
 
 #Preview {
